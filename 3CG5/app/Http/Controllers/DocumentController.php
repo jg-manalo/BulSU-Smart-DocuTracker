@@ -1,0 +1,123 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\DocumentLog;
+use App\Models\Document;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use App\Http\Controllers\DocumentLogController;
+class DocumentController extends Controller
+{
+    // Form to create document
+    public function create()
+    {
+        return view('document.create');
+    }
+
+    // Store document and generate QR
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'sender' => 'required|string|max:255',
+            'sender_email' => 'required|string|max:255',
+            'sender_dept' => 'required|string|max:255',
+            'recepient_dept' => 'required|string|max:255',
+            'communication' => 'required|in:IC,EC'
+        ]);
+
+        $uuid = (string) Str::uuid();
+        
+        DB::beginTransaction();
+
+        try{
+            $document = Document::create([
+                'uuid' => $uuid,
+                'title' => $validated['title'],
+                'sender' => $validated['sender'],
+                'sender_email' => $validated['sender_email'],
+                'sender_dept' => $validated['sender_dept'],
+                'recepient_dept' => $validated['recepient_dept'],
+                'communication' => $validated['communication'],
+            ]);
+    
+            // Generate QR pointing to document show URL
+            $url = route('document.view', $document->uuid);
+    
+            $qrCode = new QrCode($url);
+            $writer = new PngWriter();
+            $result = $writer->write($qrCode);
+    
+            // Save QR code
+            $fileName = 'qr-codes/' . $document->uuid . '.png';
+            Storage::disk('public')->put($fileName, $result->getString());
+    
+            // Update document
+            $document->qr_code_path = $fileName;
+            $document->save();
+    
+            // Log document creation
+            DocumentLog::create([
+                'uuid' => $uuid,
+                'title' => $validated['title'],
+                'sender' => $validated['sender'],
+                'sender_email' => $validated['sender_email'],
+                'sender_dept' => $validated['sender_dept'],
+                'recepient_dept' => $validated['recepient_dept'],
+                'communication' => $validated['communication'],
+            ]);
+            
+            DB::commit();
+            // Redirect to document show page
+            return redirect()->route('document.show', $document->uuid);
+        }catch(\Exception $e){
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to create document', 'message' => $e->getMessage()], 500);
+        }
+        
+    }
+
+    // View document details by scanning QR
+    public function show($uuid)
+    {
+        $document = Document::where('uuid', $uuid)->firstOrFail();
+        $log = DocumentLog::where('uuid', $uuid)->orderByDesc('created_at')->first();
+        return view('document.show', compact('document', 'log'));
+    }
+
+  
+    public function showUserDocs(Request $request)
+    {
+        // Fetch documents for the authenticated user
+        $user = $request->user();
+        $documents = Document::where('sender_email', $user->email)->get();
+        return view('document.myDocs', compact('documents'));
+    }
+    
+    public function deleteEntry($uuid)
+    {
+        DB::beginTransaction();
+        try {
+        
+            // Find the document
+            $document = Document::where('uuid', $uuid)->firstOrFail();
+            DB::table('document_logs')->where('uuid', $uuid)->delete();
+
+            // Delete the document
+            Storage::disk('public')->delete($document->qr_code_path);
+            $document->delete();
+
+            DB::commit();
+            return redirect()->route('document.myDocs')->with('success', 'Document deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Failed to delete document', 'message' => $e->getMessage()], 500);
+        }
+    }
+ 
+}

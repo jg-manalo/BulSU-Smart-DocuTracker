@@ -6,9 +6,9 @@ https://bulsusmartdocutracker.com/
 ## Project in Elective 1 and 2
 
 Developed by:
-- Ipapo, Marc Danielle O.
-- Macalinao, Mariane R.
-- Manalo, Jose Joaquin G.
-- Rubio, Emerson C.
+- Ipapo, Marc Danielle O. (Front-end Developer)
+- Macalinao, Mariane R. (Front-end Developer)
+- Manalo, Jose Joaquin G. (Full-stack Developer)
+- Rubio, Emerson C. (QA Tester)
 
  Group 5 from CPE-3C

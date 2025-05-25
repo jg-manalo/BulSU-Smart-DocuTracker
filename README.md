@@ -4,6 +4,7 @@
 https://bulsusmartdocutracker.com/
 
 ## Project in Elective 1 and 2
+*(Development Still In Progress)*
 
 Developed by:
 - Ipapo, Marc Danielle O. (Front-end Developer)

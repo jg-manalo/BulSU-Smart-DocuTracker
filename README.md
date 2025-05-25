@@ -11,4 +11,4 @@ Developed by:
 - Manalo, Jose Joaquin G. (Full-stack Developer)
 - Rubio, Emerson C. (QA Tester)
 
- Group 5 from CPE-3C
+ Group 5 from CPE-3C, Bulacan State University, A.Y. 2024-2025
